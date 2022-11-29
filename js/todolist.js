@@ -56,8 +56,8 @@ $(function() {
         }
 
         // 将data保存到本地存储中
-        function saveData(data) {
-            localStorage.setItem("todolist",JSON.stringify(data));
+        function saveData(timeData) {
+            localStorage.setItem("todolist",JSON.stringify(timeData));
         }
 
         // 将本地存储中的内容渲染到页面上
@@ -126,24 +126,59 @@ $(function() {
     // 计时器模块
     (function countModule() {
         let myCount = (function () {
-            let myInterval = null, isCount = 0, step = 0; // 初始化，myInterval 定时器，isCount 是否在计时中，step 秒数
+            let myInterval = null, isCount = 0; //step = 0; // 初始化，myInterval 定时器，isCount 是否在计时中，step 秒数
 
-            function count () {
-                let h = parseInt((step / 60 / 60) % 24);
+            // 获取本地数据
+            function getTimeData() {
+                let timeData = localStorage.getItem("time");
+                if(timeData!==null) {
+                    return JSON.parse(timeData);
+                } else {
+                    return 0;
+                }
+            }
+
+            // 将data保存到本地存储中
+            function saveTimeData(timeData) {
+                localStorage.setItem("time",JSON.stringify(timeData));
+            }
+
+            // 渲染页面函数
+            function load() {
+                let timeData = getTimeData();
+                let h = parseInt((timeData / 60 / 60) % 24);
                 h = h < 10 ? "0" + h : h;
                 $('.hour').html(h);
-                let m = parseInt((step / 60) % 60);
+                let m = parseInt((timeData / 60) % 60);
                 m = m < 10 ? "0" + m : m;
                 $('.minute').html(m);
-                let s = parseInt(step % 60);
+                let s = parseInt(timeData % 60);
                 s = s < 10 ? "0" + s : s;
-                $('.second').html(s);
-                step = step + 1;
+                $('.second').html(s);          
+            } 
+
+            // 计数函数
+            function count () {
+                let timeData = getTimeData();
+                timeData = timeData + 1;
+                saveTimeData(timeData);
+                load();
+
             } // 计数函数，并渲染页面
+
+            // 初始化渲染
+            (function init() {
+                load();
+                if($('.hour').html()!='00' || $('.minute').html()!='00' || $('.second').html()!='00') {
+                    $('#start').removeAttr('disabled').html('继续');
+                    $('#pause').attr('disabled', 'disabled');
+                    $('#restart').removeAttr('disabled');                    
+                }
+            })()
 
             function start() {
                 isCount = 1;
-                count();
+                load();
                 myInterval = setInterval(count, 1000);
                 $(this).attr('disabled', 'disabled');
                 $('#restart').attr('disabled', 'disabled');
@@ -170,9 +205,10 @@ $(function() {
             function restart() {
                 if ($('#pause').attr('disabled') == 'disabled') {
                     stop();
-                    step = 0;
-                    {count();
-                    step = step - 1;} //消除 count() 最后一步的影响
+                    let timeData = getTimeData();
+                    timeData = 0;
+                    saveTimeData(timeData);
+                    load();
                     $(this).attr('disabled', 'disabled');
                     $('#start').html('开始');
                 }
@@ -181,9 +217,11 @@ $(function() {
             return {
                 startCount: start,
                 pauseCount: pause,
-                restartCount: restart
+                restartCount: restart,
             }
         })() //* 这里采用了函数表达式 fun(){}() 的形式，返回一个对象，三个函数
+
+
 
         $('#start').on('click', myCount.startCount); //*这里函数的调用方法要注意
         $('#pause').on('click', myCount.pauseCount);
